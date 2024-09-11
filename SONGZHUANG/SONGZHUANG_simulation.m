@@ -1,44 +1,53 @@
 %%
+
+% Title: Application of the Peridynamic Model to the Songzhuang Fissure Study Area
+% Description: This MATLAB script aims to apply the Peridynamic (PD) model to the simulation of ground fissures in the Songzhuang area, 
+% incorporating actual drilling data. By employing the Peridynamic approach to simulate the development and evolution of ground fissures, 
+% the script provides a numerical analysis of the fissure phenomena in the Songzhuang region. 
+% The model's effectiveness in simulating the behavior of fissures under real geological conditions is validated by comparing the simulation results with field observation data, 
+% offering a scientific basis for fissure research in the area.
+
+% Author: Lingfei Wang
+% Date: 2024
+% Version: 1.0
+
+%%
 clear;
 clc;
 
-%% Specification of the locations of material points   将物质点位置存入数组
+%% Specification of the locations of material points  
 length = 100.0;
-% length: Total length of the plate  长度
+% length: Total length of the plate 
 width = 50.0;
-% Total width of the plate  宽度
+% Total width of the plate 
 ndivx = 200;
 % ndivx: Number of divisions in x direction - except boundary region
-% 非边界点的离散数量--x轴
 ndivy = 100;
 % ndivx: Number of divisions in y direction - except boundary region
-%非边界点的离散数量--y轴
 dx = length / ndivx;
-% dx: Spacing between material points  物质点间距
+% dx: Spacing between material points  
 thick = dx;
-% Total thickness of the plate  厚度
+% Total thickness of the plate  
 nbnd_x = 6;
 nbnd_y = 3;
-% nbnd: Number of divisions in the boundary region  
-%边界上的点数
+% nbnd_x: Virtual boundary in the x-direction
+% nbnd_y: Virtual boundary in the y-direction
 totnode = (nbnd_x+ndivx)*ndivy + nbnd_y * ndivx;
 % totnode: Total number of material points  
-%总物质点数量
 
 coord = zeros(totnode, 2);
 % coord: Material point locations  
-%物质点位置数组
 
 matnum = zeros(totnode,1);
 % matnum: Material number of a material point  
-%物质点所属材料分类数组 123456分别表示地层123456
+% Material classification array of material points, where 123456 represent the geological layers 123456 respectively
 
 nnum = 0;
-% nnum: Material point number  循环用到的当前物质点索引
+% nnum: Current material point index
 
 crlength = 8.0;
-crack_angle = 30;  % 裂纹倾斜角度，单位为度
-crack_angle_radians = deg2rad(crack_angle);  % 将角度转换为弧度
+crack_angle = 30;  % Crack inclination angle, unit is degrees
+crack_angle_radians = deg2rad(crack_angle);  % Crack inclination angle in degrees
 cos_crack_angle = cos(crack_angle_radians);
 sin_crack_angle = sin(crack_angle_radians);
 
@@ -46,7 +55,7 @@ sin_crack_angle = sin(crack_angle_radians);
 % Material points of the bar
 for i = 1:ndivx
     for j = 1:ndivy
-        %将物质点位置数据存入coord数组
+        % Store the material point position data into the coord array
         coordx = (-1.0*length/2.0) + (dx/2.0) + (i - 1)*dx;
         coordy = (-1.0*width/2.0) + (dx/2.0) + (j - 1)*dx;
         nnum = nnum + 1;
@@ -54,7 +63,8 @@ for i = 1:ndivx
         coord(nnum, 1) = coordx;
         coord(nnum, 2) = coordy;
         x_transformed = coordx * cos_crack_angle + coordy * sin_crack_angle;
-         if x_transformed <= 0  % 裂纹左侧
+        % Assign material groups to each material point,record in the matnum array
+         if x_transformed <= 0  % Crack left side
             if(j <= 20)
                 matnum(nnum ,1) = 6;
             elseif(j <= 32)
@@ -68,7 +78,7 @@ for i = 1:ndivx
             elseif(j <= 100)
                 matnum(nnum ,1) = 1;
             end
-         elseif x_transformed > 0  % 裂纹右侧
+         elseif x_transformed > 0  % Crack right side
              if(j <= 8)
                  matnum(nnum ,1) = 7 ;
              elseif(j <= 24)
@@ -83,7 +93,6 @@ for i = 1:ndivx
                  matnum(nnum ,1) = 1;
              end
          end
-        %判断位置，区分不同材料，并用matnum数组记录
     end
 end
 
@@ -156,26 +165,22 @@ end
 totbottom =nnum;
 totnode = nnum;
 
-%% Initialization of fail flag array  初始化失效数组
+%% Initialization of fail flag array 
 maxfam = 100;
 % maxfam: Maximum number of material points inside a horizon of a material
-% point  物质点近场范围最大物质点数量
 
 fail = ones(totnode, maxfam);
 
 %% Determination of material points inside the horizon of each material point
 delta = 3.015 * dx;
-% delta: Horizon  近场范围
+% delta: Horizon  
 
 pointfam = int32(zeros(totnode, 1));
 % pointfam: index array to find the family members in nodefam array  
-% 索引数组，用来查询nodefam中的成员
 numfam = int32(zeros(totnode, 1));
 % numfam: Number of family members of each material point
-% 每个物质点的近场范围所包含的物质点数量
 nodefam = int32(zeros(1000000, 1));
 % nodefam: array containing family members of all material points
-% 包含了所有物质点的族成员的数组
 
 for i = 1:totnode
     if (i == 1)
@@ -195,48 +200,23 @@ for i = 1:totnode
 end
 
 %% Definition of the crack surface
-% crlength = 44.0;
-% % crlength: Crack length
-% 
-% % PD bonds penetrating through the crack surface are broken
-% for i = 1:totnode
-%     for j = 1:numfam(i, 1)
-%         cnode = nodefam(pointfam(i, 1)+j-1, 1);
-%         if ((coord(cnode, 1) > 0.0) && (coord(i, 1) < 0.0))
-%             if ((abs(coord(i, 2)) - ((crlength / 2.0)-3)) <= 1.0e-10)
-%                 fail(i, j) = 0;
-%             elseif ((abs(coord(cnode, 2)) - ((crlength / 2.0)-3)) <= 1.0e-10)
-%                 fail(i, j) = 0;
-%             end
-%         elseif ((coord(i, 1) > 0.0) && (coord(cnode, 1) < 0.0))
-%             if ((abs(coord(i, 2)) - ((crlength / 2.0)-3)) <= 1.0e-10)
-%                 fail(i, j) = 0;
-%             elseif ((abs(coord(cnode, 2)) - ((crlength / 2.0)-3)) <= 1.0e-10)
-%                 fail(i, j) = 0;
-%             end
-%         end
-%     end
-% end
-
-
-
 
 % PD bonds penetrating through the crack surface are broken
 for i = 1:totnode
         for j = 1:numfam(i, 1)
             cnode = nodefam(pointfam(i, 1) + j - 1, 1);
 
-            % 对节点坐标进行坐标变换，将裂纹旋转到垂直坐标轴
+            % Perform a coordinate transformation on the node coordinates to rotate the crack to be perpendicular to the coordinate axis
             x_transformed_i = coord(i, 1) * cos_crack_angle + coord(i, 2) * sin_crack_angle;
             x_transformed_cnode = coord(cnode, 1) * cos_crack_angle + coord(cnode, 2) * sin_crack_angle;
 
-            % 计算裂纹位置的新x坐标
-            crack_center_x = 0;  % 这里假设裂纹中心位于坐标原点
+            % Calculate the new x-coordinate of the crack position
+            crack_center_x = 0;  % Assuming the crack center is located at the origin of the coordinates
             new_x_i = x_transformed_i - crack_center_x;
             new_x_cnode = x_transformed_cnode - crack_center_x;
 
-            % 添加条件，仅在顶部6米以下的节点上执行断裂检查
-            if coord(i, 2) <= 1.0  % 顶部6米以下
+            % Add a condition to perform fracture checks only on nodes below 6 meters from the top
+            if coord(i, 2) <= 1.0 
                 if ((new_x_i > 0.0) && (new_x_cnode < 0.0))
                     if ((abs(new_x_i) - ((crlength / 2.0) - 3)) <= 1.0e-10)
                         fail(i, j) = 0;
@@ -254,13 +234,13 @@ for i = 1:totnode
         end
 end
 
-%% Determination of surface correction factors  表面修正因子
+%% Determination of surface correction factors  
 radij = dx / 2.0d0;
-%radij: Material point radius  物质点半径
+%radij: Material point radius  
 area = dx * dx;
-% area: Cross-sectional area  物质点横截面面积
+% area: Cross-sectional area  
 vol = area * dx;
-% vol: Volume of a material point  物质点体积
+% vol: Volume of a material point  
 
 dens_1 = 1700.0;
 dens_2 = 1750.0;
@@ -268,30 +248,29 @@ dens_3 = 1800.0;
 dens_4 = 1850.0;
 dens_5 = 1950.0;
 dens_6 = 2500.0;
-% dens: Density  各层密度
+% dens: Densities of each layer
 emod_1 = 4.0e6;
 emod_2 = 8.5e6;
 emod_3 = 9.0e6;
 emod_4 = 1.05e7;
 emod_5 = 1.2e7;
 emod_6 = 10.0e9;
-% emod: Elastic modulus  弹性模量
+% emod: Elastic moduli of each layer  
 bc_1 = 9.0 * emod_1 / (pi * thick * (delta^3));
 bc_2 = 9.0 * emod_2 / (pi * thick * (delta^3));
 bc_3 = 9.0 * emod_3 / (pi * thick * (delta^3));
 bc_4 = 9.0 * emod_4 / (pi * thick * (delta^3));
 bc_5 = 9.0 * emod_5 / (pi * thick * (delta^3));
 bc_6 = 9.0 * emod_6 / (pi * thick * (delta^3));
-% bc: Bond constant  键常数
+% bc: Bond constant  
 
 disp = zeros(totnode, 2);
-% disp: displacement of a material point  点位移数组
+% disp: displacement of a material point  
 stendens = zeros(totnode, 2);
-% stendens: strain energy of a material point  物质点应变能数组
+% stendens: strain energy of a material point  
 fncst = ones(totnode, 2);
 % fncst: surface correction factors of a material point, 
 % 1:loading 1,2:loading 2  
-% 物质点的表面修正因子
 
 sedload1 = 0;
 
@@ -411,19 +390,16 @@ end
 
 
 %% Initialization of displacements and velocities
-% 初始化位移和速度数组
 vel = zeros(totnode, 2);
 disp = zeros(totnode, 2);
 
 
 %% Stable mass vector computation
-% 稳定质量矢量计算
 dt = 1.0;
-% dt: Time interval  时间步长
+% dt: Time interval  
 
 massvec = zeros(totnode, 2);
-% massvec: massvector for adaptive dynamic relaxation  用于自适应动态松弛的质量向量
-
+% massvec: massvector for adaptive dynamic relaxation  
 for i = 1:totnode
     if(matnum(i,1)==1)
         massvec(i, 1) = 0.25 * dt * dt * (pi * (delta)^2 * thick) * bc_1 / dx ;%  * 5.0;
@@ -448,10 +424,10 @@ end
 
 %% Applied loading
 appres = 1.3e4;
-% appres: Applied pressure  施加载荷
+% appres: Applied pressure  
 
 bforce = zeros(totnode, 2);
-% bforce: body load acting on a material point  体力数组
+% bforce: body load acting on a material point  
 
 for i =1: totint
      %if(matnum(i,1) == 7||matnum(i,1) == 6||matnum(i,1) == 5||matnum(i,1) == 4)
@@ -486,9 +462,9 @@ end
 % end    
 
 
-%% Time integration  时间积分
-nt =330;
-% nt: Total number of time step  总时间步
+%% Time integration  
+nt =300;
+% nt: Total number of time step  
 scr0 = 0.04472;
 
 dmg = zeros(totint, 1);
@@ -496,16 +472,16 @@ maxdmg = 0.5;
 maxxc = crlength / 2.0;
 
 pforce = zeros(totnode, 2);
-% pforce: total peridynamic force acting on a material point  物质点力密度数组
+% pforce: total peridynamic force acting on a material point  
 pforceold = zeros(totnode, 2);
 % pforce: total peridynamic force acting on a material point in the
-% previous time step 1:x-coord, 2:y-coord  物质点前一时间步的物质点力密度数组
+% previous time step 1:x-coord, 2:y-coord 
 acc = zeros(totnode, 2);
-% acc: acceleration of a material point  加速度
+% acc: acceleration of a material point  
 
 velhalf = zeros(totnode, 2);
 velhalfold = zeros(totnode, 2);
-% vel: velocity of a material point  物质点速度
+% vel: velocity of a material point  
 
 %coord_disp_pd_nt_675 = zeros(totnode, 5);
 % Peridynamic displacement and Analytical displacement of all points at time step of nt
@@ -608,19 +584,15 @@ for tt = 1:nt
             pforce(i, 2) = pforce(i, 2) + dforce2;
             
             
-            % 定义失效区
+            % Define the failure zone
             if ((nlength - idist)/idist > scr0)
-                %if (abs(coord(i, 1)) <= (length/4.0))
-                %if (x_transformed>0.0)
                     fail(i, j) = 0;
-                %end
-                %end
             end
             
             dmgpar1 = dmgpar1 + fail(i, j)*vol*fac;
             dmgpar2 = dmgpar2 + vol*fac;
         end
-        % Calculation of the damage parameter  计算损伤系数
+        % Calculation of the damage parameter  
         dmg(i, 1) = 1.0 - dmgpar1/dmgpar2;
          if ((dmg(i, 1) > maxdmg) && (coord(i, 2) > maxxc))
              maxxc = coord(i, 2);
@@ -629,7 +601,7 @@ for tt = 1:nt
 
     newcrlength = maxxc - crlength / 2.0;
     
-    % Adaptive dynamic relaxation  自适应松弛
+    % Adaptive dynamic relaxation  
 
     for i = 1:totnode
         if (velhalfold(i, 1) ~= 0.0)
