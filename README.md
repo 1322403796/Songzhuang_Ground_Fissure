@@ -35,6 +35,9 @@ This project aims to conduct numerical simulations to study the development mech
    ```
 2. Open MATLAB and navigate to the cloned repository directory.
 
+## Code Version
+This code is version 1.0 and is intended for numerical simulation purposes to obtain real and usable experimental result data. It is not to be used for commercial purposes. The code will be maintained periodically.
+
 <!-- USAGE EXAMPLES -->
 ## Usage
 
@@ -50,6 +53,10 @@ Each script will perform the following steps:
 * Apply initial conditions and boundary values.
 * Execute PD simulation.
 * Output displacement and damage fields.
+
+
+## Data Usage
+The data used in this project, specifically the data from the Songzhuang area, is non-public and should only be used for academic research purposes. It is important to note that the data is simulated and not actual data. If you need to use this data for research, please contact the project maintainer privately.
 
 ## Visualization
 
@@ -71,6 +78,9 @@ The simulation generates several figures and output datasets, including:
 * Displacement fields at various time steps.
 * Damage fields indicating the extent of fissure propagation.
 * Line plots of horizontal and vertical displacements at key points.
+
+## Disclaimer
+The code provided is for research and educational purposes only and should not be used for commercial purposes without prior permission from the copyright holder.
 
 <!-- ACKNOWLEDGMENTS -->
 ## Acknowledgments
